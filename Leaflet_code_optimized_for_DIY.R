@@ -1,6 +1,6 @@
 # -------------------------------------------------------------------------------------------------
 # Script Description: 
-# This script generates a leaflet that displays the location of stations to be sampled. 
+# This script generates a leaflet that displays the location of marine stations to be sampled. 
 # Stations denoted by colored markers also show popups reporting basic station-specific information. 
 # The background map can be overlaid with bathymetry, and chlorophyll satellite data.
 # Additional environmental parameters can be added as layers if necessary.
