@@ -70,6 +70,8 @@ content <- paste(sep = "<br/>", station_lat_lon$date, station_lat_lon$popup, sta
 
 # Load and process climatology and bathymetry data ensuring compatible CRS
 chl_clim <- raster(file_paths$path_to_clim, varname = "CHL")
+# Values in log to help pattern visualization on map
+values(chl_clim) <- log10(values(chl_clim)) 
 
 r_bathy <- raster(file_paths$path_to_depth, varname = "elevation")
 crs(r_bathy) <- CRS(projection(chl_clim))  # Ensure matching CRS for bathymetry data
