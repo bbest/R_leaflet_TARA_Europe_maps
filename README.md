@@ -14,7 +14,8 @@ The map features include a scale bar, mini-map, measuring tools, a reset map but
 
 ## Installation
 
-To run these scripts, you need to install R and the required R packages (see the main script file). You can install R from [The Comprehensive R Archive Network (CRAN)](https://cran.r-project.org/).
+To run these scripts, you need to install R and the required R packages (see the main script file).   
+You can install R from [The Comprehensive R Archive Network (CRAN)](https://cran.r-project.org/).
 
 ## Contact Information
 Christian Marchese  
