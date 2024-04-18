@@ -27,16 +27,17 @@ remove_workspace_objects()
 
 # -------------------------------------------------------------------------------------------------
 # Load Required Libraries
-# Uses 'pacman' for managing package loading and installation.
 
+# Uses 'pacman' for managing package loading and installation.
 if (!require(pacman)) install.packages("pacman")
 pacman::p_load(dplyr, raster, readxl, leaflet, leafem, leaflet.extras, htmltools, rgdal, inlmisc)
 
 # -------------------------------------------------------------------------------------------------
 # Define File Paths
+
 # Set file paths for input data excluding the output file
 file_paths <- list(
-  path_aux_file = "/path/to/stations_info.xlsx",  # Files with info regarding stations (e.g., station number, lat, lon, sampling dates, etc.) 
+  path_aux_file = "/path/to/station_lat_lon.xlsx",    # Files with info regarding stations (e.g., station number, lat, lon, sampling dates, etc.) 
   path_to_clim = "/path/to/chl_clim.nc",            # Chlorophyll-a NetCDF file (climatology or NRT time-image) 
   path_to_depth = "/path/to/depth.nc"               # Bathymetry NetCDF file 
 )
@@ -50,11 +51,11 @@ path_output <- "/path/to/output_map.html"           # Set the path for saving th
 # -------------------------------------------------------------------------------------------------
 # Data Processing
 
-# Read and preprocess station data, create 'position' column
+# Read and preprocess info on stations, create the "position" column
 station_lat_lon <- read_excel(file_paths$path_aux_file, col_types = c("numeric", "numeric", "numeric", "text", "text", "text")) %>%
   mutate(position = sprintf("[LAT:%.4f; LON:%.4f]", Lat, Lon))
 
-# General map information, structured for readability
+# General map information, structured for readability 
 title_map <- tags$div(HTML('
   <div>
     <strong>Station Information</strong><br>
@@ -113,8 +114,8 @@ customCRS <- leafletCRS(proj4def = "+proj=longlat +datum=WGS84 +ellps=WGS84 +no_
 
 # -------------------------------------------------------------------------------------------------
 # Create Leaflet map
-# Initialize the Leaflet map with custom CRS, add base tiles, and configure various layers and controls
 
+# Initialize the Leaflet map with custom CRS, add base tiles, and configure various layers and controls
 m <- leaflet(data = station_lat_lon, options = leafletOptions(crs = customCRS)) %>%
   addProviderTiles(providers$OpenStreetMap.France, options = providerTileOptions(minZoom = 3, maxZoom = 18, detectRetina = TRUE)) %>%
   fitBounds(extent(chl_clim)[1], extent(chl_clim)[4], extent(chl_clim)[2], extent(chl_clim)[3]) %>%
