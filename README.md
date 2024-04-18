@@ -4,10 +4,10 @@ XXX et al. (2024)
 
 ## Description
 
-This script generates an interactive leaflet map to facilitate the visualization of sampling stations.
+This script generates an interactive leaflet map to facilitate the visualization of sampling stations for specific coastal ocean areas.
 Each station is denoted by colored markers and includes pop-up windows displaying basic station-specific (e.g., lat, lon, date) information. 
-The leaflet integrates multiple layers which can be toggled according to the user's needs, including bathymetry and chlorophyll satellite data. 
-Additional environmental parameters can be added as layers if necessary. Features of the map include a scale bar, mini map, measuring tools, a reset map button, and GPS control.
+The leaflet integrates multiple layers (i.e., environmental parameters) such as bathymetry and chlorophyll satellite data - however, according to the user's needs, other layer can be added. 
+Features of the map include a scale bar, mini map, measuring tools, a reset map button, and GPS control.
 
 ## Installation
 
