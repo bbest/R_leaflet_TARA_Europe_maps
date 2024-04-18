@@ -4,7 +4,7 @@
 # Stations denoted by colored markers also show popups reporting basic station-specific (e.g., lat, lon, date) information. 
 # The background leaflet map can be overlaid with bathymetry and chlorophyll-a from satellite data.
 # Additional environmental parameters can be added as layers if necessary.
-# The leaflet include some features such as scale bar, mini map, measuring tools, reset map button, and GPS control.
+# The leaflet include features such as scale bar, mini map, measuring tools, reset map button, and GPS control.
 # ---------------------------------------------------------------------------------------------------------------------------
 # Reset Environment
 
