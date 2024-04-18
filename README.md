@@ -12,3 +12,7 @@ Additional environmental parameters can be added as layers if necessary. Feature
 ## Installation
 
 To run these scripts, you need to install R and the required R packages. You can install R from [The Comprehensive R Archive Network (CRAN)](https://cran.r-project.org/).
+
+## Contact Information
+
+## Acknowledgments
