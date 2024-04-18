@@ -13,7 +13,7 @@ The map features include a scale bar, mini-map, measuring tools, a reset map but
 3. Leafem v. 0.2.3
 
 ## License
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License (GPL) v3.0 - see the [LICENSE](https://www.gnu.org/licenses/gpl-3.0.html) file for details.
 
 ## Installation
 
