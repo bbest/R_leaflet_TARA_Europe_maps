@@ -37,9 +37,9 @@ pacman::p_load(dplyr, raster, readxl, leaflet, leafem, leaflet.extras, htmltools
 # Define File Paths
 # Set file paths for input data excluding the output file
 file_paths <- list(
-  path_aux_file = "/path/to/station_lat_lon.xlsx",  
-  path_to_clim = "/path/to/chl_clim.nc",
-  path_to_depth = "/path/to/depth.nc"
+  path_aux_file = "/path/to/station_lat_lon.xlsx",  # Files with information regarding stations
+  path_to_clim = "/path/to/chl_clim.nc",            # Chlorophyll-a NetCDF file (climatology or NRT time-image) 
+  path_to_depth = "/path/to/depth.nc"               # Bathymetry NetCDF file 
 )
 
 # Ensure all input files exist; stop execution if any are missing
