@@ -4,7 +4,7 @@ XXX et al. (2024)
 
 ## Description
 This script generates an interactive leaflet map to facilitate the visualization of sampling stations for specific coastal ocean areas. 
-Colored markers denote each station and include pop-up windows displaying basic station-specific (e.g., station number, lat, lon, sampling dates, etc.) information. 
+Colored markers denote each station and include pop-up windows displaying basic station-specific information (e.g., station number, lat, lon, sampling dates, etc.). 
 The leaflet integrates multiple layers (i.e., environmental parameters), such as bathymetry and chlorophyll satellite data; however, other layers can be added according to the user's needs. 
 The map features include a scale bar, mini-map, measuring tools, a reset map button, and GPS control. The R script is commented, and the main R packages needed are as follows:
 
