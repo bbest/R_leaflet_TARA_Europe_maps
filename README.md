@@ -1,6 +1,6 @@
 ## This repository contains the R script associated with the manuscript:
   
-XXX et al. (2024)
+Marchese et al. (20XX)
 
 ## Description
 This script generates an interactive leaflet map to facilitate the visualization of sampling stations for specific coastal ocean areas. 
