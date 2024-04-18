@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------------------------------------------------------
 # Script Description: 
 # This script generates an interactive leaflet map to facilitate the visualization of sampling stations for specific coastal ocean areas. 
-# Colored markers denote each station and include pop-up windows displaying basic station-specific (e.g., lat, lon, date) information. 
+# Colored markers denote each station and include pop-up windows displaying basic station-specific (e.g., lat, lon, date, etc.) information. 
 # The leaflet integrates multiple layers (i.e., environmental parameters), such as bathymetry and chlorophyll satellite data; 
 # however, other layers can be added according to the user's needs. 
 # The map features include a scale bar, mini-map, measuring tools, a reset map button, and GPS control.
@@ -35,7 +35,7 @@ pacman::p_load(dplyr, raster, readxl, leaflet, leafem, leaflet.extras, htmltools
 # Define File Paths
 # Set file paths for input data excluding the output file
 file_paths <- list(
-  path_aux_file = "/path/to/station_lat_lon.xlsx",  # Files with information regarding stations
+  path_aux_file = "/path/to/station_lat_lon.xlsx",  # Files with info regarding stations (e.g., station number, lat, lon, sampling dates, etc.) 
   path_to_clim = "/path/to/chl_clim.nc",            # Chlorophyll-a NetCDF file (climatology or NRT time-image) 
   path_to_depth = "/path/to/depth.nc"               # Bathymetry NetCDF file 
 )
