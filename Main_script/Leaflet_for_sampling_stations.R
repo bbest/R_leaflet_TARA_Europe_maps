@@ -1,13 +1,11 @@
 # ---------------------------------------------------------------------------------------------------------------------------
 # Script Description: 
-# This script generates a leaflet that displays the location of marine stations to be sampled. 
-# Stations denoted by colored markers also show popups reporting basic station-specific (e.g., lat, lon, date) information. 
-# The background leaflet map can be overlaid with bathymetry and chlorophyll-a from satellite data.
-# Additional environmental parameters can be added as layers if necessary.
-# The leaflet include features such as scale bar, mini map, measuring tools, reset map button, and GPS control.
+# This script generates an interactive leaflet map to facilitate the visualization of sampling stations for specific coastal ocean areas. 
+# Colored markers denote each station and include pop-up windows displaying basic station-specific (e.g., lat, lon, date) information. 
+# The leaflet integrates multiple layers (i.e., environmental parameters), such as bathymetry and chlorophyll satellite data; 
+# however, other layers can be added according to the user's needs. 
+# The map features include a scale bar, mini-map, measuring tools, a reset map button, and GPS control.
 # ---------------------------------------------------------------------------------------------------------------------------
-# Reset Environment
-
 # Restart R session if needed
 #.rs.restartR()
 
