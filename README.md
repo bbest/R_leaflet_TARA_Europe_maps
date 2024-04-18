@@ -12,6 +12,9 @@ The map features include a scale bar, mini-map, measuring tools, a reset map but
 2. Leaflet.Extras v.1.0.0
 3. Leafem v. 0.2.3
 
+## License
+This project is licensed under the [GNU General Public License v3.0] - see the [LICENSE](LICENSE) file for details.
+
 ## Installation
 
 To run these scripts, you need to install R and the required R packages (see the main script file).   
