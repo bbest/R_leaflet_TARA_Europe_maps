@@ -46,7 +46,7 @@ file_paths <- list(
 stopifnot(all(file.exists(unlist(file_paths))))
 
 # Define the output file path separately
-path_output <- "/path/to/output_map.html"
+path_output <- "/path/to/output_map.html"           # Set the path for saving the leaflet HTML file
 
 # -------------------------------------------------------------------------------------------------
 # Data Processing
