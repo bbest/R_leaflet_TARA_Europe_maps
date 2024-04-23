@@ -55,7 +55,7 @@ path_output <- "/path/to/output_map.html"           # Set the path for saving th
 station_lat_lon <- read_excel(file_paths$path_aux_file, col_types = c("numeric", "numeric", "numeric", "text", "text", "text")) %>%
   mutate(position = sprintf("[LAT:%.4f; LON:%.4f]", Lat, Lon))
 
-# General map information, structured for readability 
+# General map information, structured for readability (fill with the info you need) 
 title_map <- tags$div(HTML('
   <div>
     <strong>Station Information</strong><br>
