@@ -1,4 +1,4 @@
-# ---------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
 # Script Description: 
 # This script generates an interactive leaflet map to facilitate the visualization of sampling stations for specific ocean areas. 
 # Colored markers denote each station and include pop-up windows displaying basic station-specific (e.g., lat, lon, date, etc.) information. 
@@ -6,7 +6,9 @@
 # however, other layers can be added according to the user's needs. 
 # The map features include a scale bar, mini-map, measuring tools, a reset map button, and GPS control.
 # Script licensed under the GNU General Public License (GPL) v3.0 
-# ---------------------------------------------------------------------------------------------------------------------------
+#
+# -------------------------------------------------------------------------------------------------------------------------------------------
+
 # Restart R session if needed
 #.rs.restartR()
 
