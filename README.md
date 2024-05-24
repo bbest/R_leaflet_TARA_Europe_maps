@@ -1,6 +1,6 @@
 ## This repository contains the R script associated with the manuscript:
   
-Marchese et al. (20XX)
+Marchese et al. under review in DIY Oceanography (https://tos.org/diy-oceanography) 
 
 ## Description
 This script generates an interactive leaflet map to facilitate the visualization of sampling stations for specific coastal ocean areas. 
