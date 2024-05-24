@@ -124,9 +124,11 @@ m <- leaflet(data = station_lat_lon, options = leafletOptions(crs = customCRS)) 
   addMouseCoordinates() %>% 
   addControl(title_map, position = "bottomright") %>%
   addSimpleGraticule(interval = 1) %>%
+  # Layer 1
   addRasterImage(chl_clim, colors = pal1, project = TRUE, opacity = 1, group = "Chla") %>%
   addLegend("bottomright", pal = pal1, opacity = 1, group = "Chla", values = values(chl_clim),
             labFormat = labelFormat(transform = function(x) round(10^x, 2)), title = "Chla (mg/m³)") %>%
+  # Layer 2                                  
   addRasterImage(r_bathy, colors = pal2, project = TRUE, opacity = 1, group = "Bathy") %>%
   addLegend("bottomright", pal = pal2, opacity = 1, group = "Bathy", values = values(r_bathy),
             labFormat = labelFormat(transform = function(x) round(x, 1)), title = "Depth (m)") %>%
