@@ -114,7 +114,7 @@ getColor <- function(station_type) {
 # Set a custom CRS for the Leaflet map
 customCRS <- leafletCRS(proj4def = "+proj=longlat +datum=WGS84 +ellps=WGS84 +no_defs")
 
-# -------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 # Create Leaflet map
 
 # Initialize the Leaflet map with custom CRS, add base tiles, and configure various layers and controls
