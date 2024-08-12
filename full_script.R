@@ -163,7 +163,7 @@ m <- leaflet() |>
   fitBounds(b[1], b[3], b[2], b[4]) |>
   addMouseCoordinates() |> 
   addControl(title_map, position = "bottomright") |>
-  addSimpleGraticule(interval = 1) |>
+  addSimpleGraticule(interval = 5) |>
   # sst
   addRasterImage(r_sst, colors = pal_sst, project = F, opacity = 1, group = "SST") |>
   addLegend(
