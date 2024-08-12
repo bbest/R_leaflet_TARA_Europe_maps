@@ -33,7 +33,7 @@ remove_workspace_objects()
 # Uses 'pacman' for managing package loading and installation.
 if (!require(librarian)) install.packages("librarian")
 librarian::shelf(
-  cmocean, dplyr, here, htmltools, htmlwidgets, leafem, leaflet, leaflet.extras, readxl, terra)
+  cmocean, dplyr, glue, here, htmltools, htmlwidgets, leafem, leaflet, leaflet.extras, readr, sf, terra)
 
 # -------------------------------------------------------------------------------------------------
 # Define File Paths
@@ -55,24 +55,17 @@ depth_nc  <- here(file.path("data", basename(depth_url)))
 depth_nc <- sst_nc                                           # TODO: remove this fake path setting
 if (!file.exists(chl_nc)) download.file(depth_url, depth_nc)
 
-# Stations Excel file with info regarding stations (e.g., station number, lat, lon, sampling dates, etc.) 
-stations_xl = here("data/example_station_lat_lon.xlsx")
+# Stations CSV file with info regarding stations (e.g., station number, lat, lon, sampling dates, etc.) 
+stations_csv = here("data/random_stations.csv")
 
 # Ensure all input files exist; stop execution if any are missing
-stopifnot(all(file.exists(c(stations_xl, chl_nc, depth_nc))))
+stopifnot(all(file.exists(c(chl_nc, depth_nc))))
 
 # Define the output file path separately
 out_html <- here("index.html")             # Set the path for saving the leaflet HTML file
 
 # -------------------------------------------------------------------------------------------------
 # Data Processing
-
-# Read and preprocess info on stations, create the "position" column
-d_stations <- read_excel(
-  stations_xl, 
-  col_types = c("numeric", "numeric", "numeric", "text", "text", "text")) |>
-  mutate(
-    position = sprintf("[LAT:%.4f; LON:%.4f]", Lat, Lon))
 
 # General map information, structured for readability (fill with the info you need) 
 title_map <- tags$div(HTML('
@@ -84,16 +77,18 @@ title_map <- tags$div(HTML('
   </div>
 '))
 
-# Prepare station content for popups combining different columns
-content <- paste(sep = "<br/>", d_stations$date, d_stations$popup, d_stations$position)
-
 # Set extent (for raster cropping) and bounding box (for map fitting)
-e <- ext(295, 322, 50, 68)              # extent of Labrador Sea area
-b <- e |> as.vector() |> as.numeric()   # bounding box Labrador Sea area
+e <- ext(295, 322, 50, 68)                           # extent of Labrador Sea area for raster clipping [0,360]
+b <- as.numeric(as.vector(e)) + c(-360, -360, 0, 0)  # shift back to expected [-180,180]
+
+# Load and process climatology and bathymetry data ensuring compatible CRS
+r_sst <- rast(sst_nc, subds = "sst") |>
+  crop(e) |> 
+  projectRasterForLeaflet("bilinear")
 
 # Load and process climatology and bathymetry data ensuring compatible CRS
 #r_chl <- rast(chl_nc, subds = "CHL") |> 
-r_chl <- rast(depth_nc, subds = "sst") |>      # TODO: update varname to not fake_nc
+r_chl <- rast(chl_nc, subds = "sst") |>      # TODO: update varname to not fake_nc
   crop(e) |> 
   projectRasterForLeaflet("bilinear")
 values(r_chl) <- log10(values(r_chl) + 0.00001)          # Chl values in log to help pattern visualization on map
@@ -111,6 +106,11 @@ rcl_matrix <- matrix(c(0, Inf, 0, -Inf, -200, NA), ncol=3, byrow=TRUE)
 r_depth    <- classify(r_depth, rcl_matrix, right=TRUE)
 
 # Set color palettes for chlorophyll and bathymetry data visualization
+pal_sst <- colorNumeric(
+  cmocean("balance")(256),
+  domain   = range(values(r_sst, na.rm = TRUE)),
+  na.color = "transparent")
+
 pal_chl <- colorNumeric(
   cmocean("algae")(256),
   domain   = range(values(r_chl, na.rm = TRUE)),
@@ -121,50 +121,72 @@ pal_depth <- colorBin(
   domain   = range(values(r_depth, na.rm = TRUE)),
   na.color = "transparent")
 
-# Define a function to determine marker color based on station type
-getColor <- function(station_type) {
-  if(station_type == "TARA") {
-    "green"
-  } else if(station_type == "TREC") {
-    "orange"
-  } else {
-    "red"
-  }
+# Stations ----
+if (!file.exists(stations_csv)){
+
+  # Create a sample of stations for testing  
+  n_pts <- 10
+  pts <- mask(!is.na(r_sst), r_sst) |> 
+    as.polygons() |> 
+    st_as_sf() |> 
+    st_sample(size = n_pts) |> 
+    st_transform(4326) |>
+    st_as_sf() |> 
+    rename(geom = 1) |> 
+    mutate(
+      id   = 1:n_pts,
+      type = sample(c("TARA", "TREC", "Other"), n_pts, replace = T),
+      lon  = st_coordinates(geom)[, 1],
+      lat  = st_coordinates(geom)[, 2])
+  
+  pts |> 
+    st_drop_geometry() |> 
+    write_csv(stations_csv)
 }
+
+pts <- read_csv(stations_csv, show_col_types = F) |> 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326, remove = F) |> 
+  mutate(
+    color = case_match(
+      type,
+      "TARA"  ~ "green",
+      "TREC"  ~ "orange",
+      "Other" ~ "red"),
+    content = glue("<b>Station {id}</b> ({type}) <br/>Location: {round(lon, 3)}, {round(lat, 3)}"))
 
 # --------------------------------------------------------------------------------------------------
 # Create Leaflet map
 
 # Initialize the Leaflet map with custom CRS, add base tiles, and configure various layers and controls
-m <- leaflet(data = d_stations) |>
+m <- leaflet() |>
   addProviderTiles(providers$OpenStreetMap.France, options = providerTileOptions(minZoom = 3, maxZoom = 18, detectRetina = TRUE)) |>
   fitBounds(b[1], b[3], b[2], b[4]) |>
   addMouseCoordinates() |> 
   addControl(title_map, position = "bottomright") |>
   addSimpleGraticule(interval = 1) |>
-  # Layer 1
-  addRasterImage(r_chl, colors = pal_chl, project = TRUE, opacity = 1, group = "Chla") |>
+  # sst
+  addRasterImage(r_sst, colors = pal_sst, project = F, opacity = 1, group = "SST") |>
+  addLegend(
+    "bottomright", pal = pal_sst, opacity = 1, group = "SST", values = values(r_sst),
+    title = "SST (°C)") |>
+  # chl
+  addRasterImage(r_chl, colors = pal_chl, project = F, opacity = 1, group = "Chla") |>
   addLegend("bottomright", pal = pal_chl, opacity = 1, group = "Chla", values = values(r_chl),
             labFormat = labelFormat(transform = function(x) round(10^x, 2)), title = "Chla (mg/m³)") |>
-  # Layer 2                                  
-  addRasterImage(r_depth, colors = pal_depth, project = TRUE, opacity = 1, group = "Depth") |>
+  # depth
+  addRasterImage(r_depth, colors = pal_depth, project = F, opacity = 1, group = "Depth") |>
   addLegend("bottomright", pal = pal_depth, opacity = 1, group = "Depth", values = values(r_depth),
             labFormat = labelFormat(transform = function(x) round(x, 1)), title = "Depth (m)") |>
-  addLayersControl(position = "topleft", overlayGroups = c("Chla", "Depth"), options = layersControlOptions(collapsed = FALSE)) |>
-  hideGroup(c("Chla", "Depth"))
-
-# Loop through each station row and add markers with appropriate icons and popups
-for(i in 1:nrow(d_stations)) {
-  m <- m |>
-    addAwesomeMarkers(
-      lng = d_stations$Lon[i], lat = d_stations$Lat[i], popup = content[i],
-      icon = awesomeIcons(
-        icon = 'flag', iconColor = 'black', library = 'ion', 
-        markerColor = getColor(d_stations$station_type[i])))
-}
-
-# Add additional map features such as scale bar, mini map, measuring tools, reset map button, and GPS control
-m <- m |>
+  addLayersControl(position = "topleft", overlayGroups = c("SST", "Chla", "Depth"), options = layersControlOptions(collapsed = FALSE)) |>
+  hideGroup(c("Chla", "Depth")) |> 
+  # stations
+  addAwesomeMarkers(
+    data  = pts,
+    popup = ~content,
+    icon  = awesomeIcons(
+      icon = 'flag', iconColor = 'black', library = 'ion', 
+      markerColor = ~color)) |> 
+  # Add additional map features such as scale bar, mini map, measuring tools, reset map button, and GPS control
   addScaleBar(position = "bottomleft") |>
   addMiniMap(tiles = providers$Esri.WorldStreetMap, toggleDisplay = TRUE, minimized = FALSE) |>
   addMeasure(position = "bottomleft", primaryLengthUnit = "meters", primaryAreaUnit = "sqmeters", 
