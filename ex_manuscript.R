@@ -2,13 +2,13 @@
 library(leaflet)
 library(terra)
 
-# Download from NOAA the specific NetCDF file using wget
-url_nc <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202405/oisst-avhrr-v02r01.20240515.nc"
-nc     <- file.path("data", basename(url_nc))
-download.file(url_nc, nc)
+# Download from NOAA the specific NetCDF file
+url_sst <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202405/oisst-avhrr-v02r01.20240515.nc"
+sst_nc     <- file.path("data", basename(url_sst))
+if (!file.exists(sst_nc)) download.file(url_sst, sst_nc)
 
 # Open the downloaded NetCDF file with the rast function
-r <- rast(nc)
+r <- rast(sst_nc)
 
 # Crop the raster on the Labrador Sea area
 r <- crop(r, ext(295, 322, 50, 68))

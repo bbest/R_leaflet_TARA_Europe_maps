@@ -31,31 +31,48 @@ remove_workspace_objects()
 # Load Required Libraries
 
 # Uses 'pacman' for managing package loading and installation.
-if (!require(pacman)) install.packages("pacman")
-pacman::p_load(dplyr, terra, readxl, leaflet, leafem, leaflet.extras, htmltools, inlmisc)
+if (!require(librarian)) install.packages("librarian")
+librarian::shelf(
+  cmocean, dplyr, here, htmltools, htmlwidgets, leafem, leaflet, leaflet.extras, readxl, terra)
 
 # -------------------------------------------------------------------------------------------------
 # Define File Paths
 
-# Set file paths for input data excluding the output file
-file_paths <- list(
-  path_aux_file = "/path/to/station_lat_lon.xlsx",    # Files with info regarding stations (e.g., station number, lat, lon, sampling dates, etc.) 
-  path_to_clim = "/path/to/chl_clim.nc",              # Chlorophyll-a NetCDF file (climatology or NRT image) 
-  path_to_depth = "/path/to/depth.nc"                 # Bathymetry NetCDF file 
-)
+# Download from NOAA the specific NetCDF file
+url_sst <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202405/oisst-avhrr-v02r01.20240515.nc"
+sst_nc     <- file.path("data", basename(url_sst))
+if (!file.exists(sst_nc)) download.file(url_sst, sst_nc)
+
+# Download Chlorophyll-a NetCDF file (climatology or NRT image) , if needed
+chl_url <- "https://somesite.nasa.gov/chl.nc"                # TODO: update w/ valid URL
+chl_nc  <- here(file.path("data", basename(chl_url)))
+chl_nc  <- sst_nc                                            # TODO: remove this fake path setting
+if (!file.exists(chl_nc)) download.file(chl_url, chl_nc)
+
+# Download Bathymetry NetCDF file, if needed
+depth_url <- "https://somesite.noaa.gov/depth.nc"            # TODO: update w/ valid URL
+depth_nc  <- here(file.path("data", basename(depth_url)))
+depth_nc <- sst_nc                                           # TODO: remove this fake path setting
+if (!file.exists(chl_nc)) download.file(depth_url, depth_nc)
+
+# Stations Excel file with info regarding stations (e.g., station number, lat, lon, sampling dates, etc.) 
+stations_xl = here("data/example_station_lat_lon.xlsx")
 
 # Ensure all input files exist; stop execution if any are missing
-stopifnot(all(file.exists(unlist(file_paths))))
+stopifnot(all(file.exists(c(stations_xl, chl_nc, depth_nc))))
 
 # Define the output file path separately
-path_output <- "/path/to/output_map.html"             # Set the path for saving the leaflet HTML file
+out_html <- here("index.html")             # Set the path for saving the leaflet HTML file
 
 # -------------------------------------------------------------------------------------------------
 # Data Processing
 
 # Read and preprocess info on stations, create the "position" column
-station_lat_lon <- read_excel(file_paths$path_aux_file, col_types = c("numeric", "numeric", "numeric", "text", "text", "text")) %>%
-  mutate(position = sprintf("[LAT:%.4f; LON:%.4f]", Lat, Lon))
+d_stations <- read_excel(
+  stations_xl, 
+  col_types = c("numeric", "numeric", "numeric", "text", "text", "text")) |>
+  mutate(
+    position = sprintf("[LAT:%.4f; LON:%.4f]", Lat, Lon))
 
 # General map information, structured for readability (fill with the info you need) 
 title_map <- tags$div(HTML('
@@ -68,37 +85,41 @@ title_map <- tags$div(HTML('
 '))
 
 # Prepare station content for popups combining different columns
-content <- paste(sep = "<br/>", station_lat_lon$date, station_lat_lon$popup, station_lat_lon$position)
+content <- paste(sep = "<br/>", d_stations$date, d_stations$popup, d_stations$position)
+
+# Set extent (for raster cropping) and bounding box (for map fitting)
+e <- ext(295, 322, 50, 68)              # extent of Labrador Sea area
+b <- e |> as.vector() |> as.numeric()   # bounding box Labrador Sea area
 
 # Load and process climatology and bathymetry data ensuring compatible CRS
-chl_clim <- raster(file_paths$path_to_clim, varname = "CHL")
-values(chl_clim) <- log10(values(chl_clim))                               # Chl values in log to help pattern visualization on map
+#r_chl <- rast(chl_nc, subds = "CHL") |> 
+r_chl <- rast(depth_nc, subds = "sst") |>      # TODO: update varname to not fake_nc
+  crop(e) |> 
+  projectRasterForLeaflet("bilinear")
+values(r_chl) <- log10(values(r_chl) + 0.00001)          # Chl values in log to help pattern visualization on map
 
-r_bathy <- raster(file_paths$path_to_depth, varname = "elevation")
-crs(r_bathy) <- CRS(projection(chl_clim))                                 # Ensure matching CRS for bathymetry data
-r_bathy <- crop(r_bathy, extent(chl_clim))                                # Crop bathymetry data to match the extent of climatology data
+# r_depth <- rast(depth_nc, subds = "elevation") |> 
+r_depth <- rast(depth_nc, subds = "sst") |>   # TODO: update varname to not fake_nc
+  crop(e) |> 
+  projectRasterForLeaflet("bilinear")
+
+# TODO: remove for not fake_nc
+values(r_depth) <- scales::rescale(values(r_depth), to = c(-500, 500))
+
 # Reclassify bathymetry data to differentiate depths below 200m
 rcl_matrix <- matrix(c(0, Inf, 0, -Inf, -200, NA), ncol=3, byrow=TRUE)
-r_bathy <- reclassify(r_bathy, rcl_matrix, right=TRUE)
-
-# Function to create color palettes for data visualization
-createColorPalette <- function(scheme, bias, paletteFunction, domain, bins = NULL, reverse = FALSE) {
-  plt <- GetColors(256, start = 0, end = 1, bias = bias, scheme = scheme)
-  if (!is.null(bins)) {
-    # For discrete color bins
-    return(paletteFunction(palette = plt, domain = domain, bins = bins, na.color = "transparent", reverse = reverse))
-  } else {
-    # For continuous color scales
-    return(paletteFunction(palette = plt, domain = domain, na.color = "transparent"))
-  }
-}
+r_depth    <- classify(r_depth, rcl_matrix, right=TRUE)
 
 # Set color palettes for chlorophyll and bathymetry data visualization
-domain_chl_clim <- range(values(chl_clim), na.rm = TRUE)
-pal1 <- createColorPalette(scheme = "jet", bias = 0.75, paletteFunction = colorNumeric, domain = domain_chl_clim)
+pal_chl <- colorNumeric(
+  cmocean("algae")(256),
+  domain   = range(values(r_chl, na.rm = TRUE)),
+  na.color = "transparent")
 
-domain_r_bathy <- range(values(r_bathy), na.rm = TRUE)
-pal2 <- createColorPalette(scheme = "drywet", bias = 1, paletteFunction = colorBin, domain = domain_r_bathy, bins = 10, reverse = TRUE)
+pal_depth <- colorBin(
+  cmocean("deep")(256),
+  domain   = range(values(r_depth, na.rm = TRUE)),
+  na.color = "transparent")
 
 # Define a function to determine marker color based on station type
 getColor <- function(station_type) {
@@ -111,45 +132,44 @@ getColor <- function(station_type) {
   }
 }
 
-# Set a custom CRS for the Leaflet map
-customCRS <- leafletCRS(proj4def = "+proj=longlat +datum=WGS84 +ellps=WGS84 +no_defs")
-
 # --------------------------------------------------------------------------------------------------
 # Create Leaflet map
 
 # Initialize the Leaflet map with custom CRS, add base tiles, and configure various layers and controls
-m <- leaflet(data = station_lat_lon, options = leafletOptions(crs = customCRS)) %>%
-  addProviderTiles(providers$OpenStreetMap.France, options = providerTileOptions(minZoom = 3, maxZoom = 18, detectRetina = TRUE)) %>%
-  fitBounds(extent(chl_clim)[1], extent(chl_clim)[4], extent(chl_clim)[2], extent(chl_clim)[3]) %>%
-  addMouseCoordinates() %>% 
-  addControl(title_map, position = "bottomright") %>%
-  addSimpleGraticule(interval = 1) %>%
+m <- leaflet(data = d_stations) |>
+  addProviderTiles(providers$OpenStreetMap.France, options = providerTileOptions(minZoom = 3, maxZoom = 18, detectRetina = TRUE)) |>
+  fitBounds(b[1], b[3], b[2], b[4]) |>
+  addMouseCoordinates() |> 
+  addControl(title_map, position = "bottomright") |>
+  addSimpleGraticule(interval = 1) |>
   # Layer 1
-  addRasterImage(chl_clim, colors = pal1, project = TRUE, opacity = 1, group = "Chla") %>%
-  addLegend("bottomright", pal = pal1, opacity = 1, group = "Chla", values = values(chl_clim),
-            labFormat = labelFormat(transform = function(x) round(10^x, 2)), title = "Chla (mg/m³)") %>%
+  addRasterImage(r_chl, colors = pal_chl, project = TRUE, opacity = 1, group = "Chla") |>
+  addLegend("bottomright", pal = pal_chl, opacity = 1, group = "Chla", values = values(r_chl),
+            labFormat = labelFormat(transform = function(x) round(10^x, 2)), title = "Chla (mg/m³)") |>
   # Layer 2                                  
-  addRasterImage(r_bathy, colors = pal2, project = TRUE, opacity = 1, group = "Bathy") %>%
-  addLegend("bottomright", pal = pal2, opacity = 1, group = "Bathy", values = values(r_bathy),
-            labFormat = labelFormat(transform = function(x) round(x, 1)), title = "Depth (m)") %>%
-  addLayersControl(position = "topleft", overlayGroups = c("Chla", "Bathy"), options = layersControlOptions(collapsed = FALSE)) %>%
-  hideGroup(c("Chla", "Bathy"))
+  addRasterImage(r_depth, colors = pal_depth, project = TRUE, opacity = 1, group = "Depth") |>
+  addLegend("bottomright", pal = pal_depth, opacity = 1, group = "Depth", values = values(r_depth),
+            labFormat = labelFormat(transform = function(x) round(x, 1)), title = "Depth (m)") |>
+  addLayersControl(position = "topleft", overlayGroups = c("Chla", "Depth"), options = layersControlOptions(collapsed = FALSE)) |>
+  hideGroup(c("Chla", "Depth"))
 
 # Loop through each station row and add markers with appropriate icons and popups
-for(i in 1:nrow(station_lat_lon)) {
-  m <- m %>%
-    addAwesomeMarkers(lng = station_lat_lon$Lon[i], lat = station_lat_lon$Lat[i], popup = content[i],
-                      icon = awesomeIcons(icon = 'flag', iconColor = 'black', library = 'ion', 
-                                          markerColor = getColor(station_lat_lon$station_type[i])))
+for(i in 1:nrow(d_stations)) {
+  m <- m |>
+    addAwesomeMarkers(
+      lng = d_stations$Lon[i], lat = d_stations$Lat[i], popup = content[i],
+      icon = awesomeIcons(
+        icon = 'flag', iconColor = 'black', library = 'ion', 
+        markerColor = getColor(d_stations$station_type[i])))
 }
 
 # Add additional map features such as scale bar, mini map, measuring tools, reset map button, and GPS control
-m <- m %>%
-  addScaleBar(position = "bottomleft") %>%
-  addMiniMap(tiles = providers$Esri.WorldStreetMap, toggleDisplay = TRUE, minimized = FALSE) %>%
+m <- m |>
+  addScaleBar(position = "bottomleft") |>
+  addMiniMap(tiles = providers$Esri.WorldStreetMap, toggleDisplay = TRUE, minimized = FALSE) |>
   addMeasure(position = "bottomleft", primaryLengthUnit = "meters", primaryAreaUnit = "sqmeters", 
-             activeColor = "darkgreen", completedColor = "red") %>%
-  addResetMapButton() %>%
+             activeColor = "darkgreen", completedColor = "red") |>
+  addResetMapButton() |>
   addControlGPS(options = gpsOptions(position = "bottomleft", activate = TRUE, autoCenter = TRUE, 
                                      maxZoom = 18, setView = TRUE))
 
@@ -168,7 +188,7 @@ save_leaflet <- function(map, file, overwrite = TRUE) {
   }
 }
 
-save_leaflet(m, path_output)
+save_leaflet(m, out_html)
 
 # -------------------------------------------------------------------------------------------------
 # End of the R script
